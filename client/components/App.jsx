@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import logo from "/assets/openai-logomark.svg";
+import { useRef, useState } from "react";
 import EventLog from "./EventLog";
 import SessionControls from "./SessionControls";
 import ToolPanel from "./ToolPanel";
+import AudioHandler from "./AudioHandler";
+import WebRTCHandler from "./WebRTCHandler";
 
 export default function App() {
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -20,10 +21,7 @@ export default function App() {
     // Create a peer connection
     const pc = new RTCPeerConnection();
 
-    // Set up to play remote audio from the model
-    audioElement.current = document.createElement("audio");
-    audioElement.current.autoplay = true;
-    pc.ontrack = (e) => (audioElement.current.srcObject = e.streams[0]);
+    // Audio handling is now managed by AudioHandler component
 
     // Add local audio track for microphone input in the browser
     const ms = await navigator.mediaDevices.getUserMedia({
@@ -40,8 +38,7 @@ export default function App() {
     await pc.setLocalDescription(offer);
 
     const baseUrl = "https://api.openai.com/v1/realtime";
-    const model = "gpt-4o-realtime-preview-2024-12-17";
-    const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
+    const sdpResponse = await fetch(`${baseUrl}?intent=transcription`, {
       method: "POST",
       body: offer.sdp,
       headers: {
@@ -66,6 +63,11 @@ export default function App() {
     }
     if (peerConnection.current) {
       peerConnection.current.close();
+    }
+
+    // Don't remove the audio element, just clear its source
+    if (audioElement.current) {
+      audioElement.current.srcObject = null;
     }
 
     setIsSessionActive(false);
@@ -107,54 +109,44 @@ export default function App() {
     sendClientEvent({ type: "response.create" });
   }
 
-  // Attach event listeners to the data channel when a new one is created
-  useEffect(() => {
-    if (dataChannel) {
-      // Append new server events to the list
-      dataChannel.addEventListener("message", (e) => {
-        setEvents((prev) => [JSON.parse(e.data), ...prev]);
-      });
-
-      // Set session active when the data channel is opened
-      dataChannel.addEventListener("open", () => {
-        setIsSessionActive(true);
-        setEvents([]);
-      });
-    }
-  }, [dataChannel]);
+  // WebRTC handling and audio cleanup now managed by their respective components
 
   return (
     <>
-      <nav className="absolute top-0 left-0 right-0 h-16 flex items-center">
-        <div className="flex items-center gap-4 w-full m-4 pb-2 border-0 border-b border-solid border-gray-200">
-          <img style={{ width: "24px" }} src={logo} />
-          <h1>realtime console</h1>
-        </div>
-      </nav>
-      <main className="absolute top-16 left-0 right-0 bottom-0">
-        <section className="absolute top-0 left-0 right-[380px] bottom-0 flex">
-          <section className="absolute top-0 left-0 right-0 bottom-32 px-4 overflow-y-auto">
+      {/* Non-visual components for handling WebRTC and audio */}
+      <AudioHandler peerConnection={peerConnection} audioElement={audioElement} />
+      <WebRTCHandler
+        peerConnection={peerConnection}
+        dataChannel={dataChannel}
+        setDataChannel={setDataChannel}
+        setIsSessionActive={setIsSessionActive}
+        setEvents={setEvents}
+      />
+
+      <main className="flex flex-col h-screen">
+        <div className="flex flex-1 overflow-hidden">
+          <section className="flex-1 min-w-0">
             <EventLog events={events} />
           </section>
-          <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
-            <SessionControls
-              startSession={startSession}
-              stopSession={stopSession}
-              sendClientEvent={sendClientEvent}
-              sendTextMessage={sendTextMessage}
-              events={events}
-              isSessionActive={isSessionActive}
-            />
-          </section>
-        </section>
-        <section className="absolute top-0 w-[380px] right-0 bottom-0 p-4 pt-0 overflow-y-auto">
-          <ToolPanel
-            sendClientEvent={sendClientEvent}
-            sendTextMessage={sendTextMessage}
-            events={events}
-            isSessionActive={isSessionActive}
-          />
-        </section>
+          <aside className="flex flex-col overflow-y-auto flex-1 p-4 overflow-y-auto">
+            <div className="flex-grow">
+              <ToolPanel
+                sendClientEvent={sendClientEvent}
+                events={events}
+                isSessionActive={isSessionActive}
+              />
+            </div>
+            <div className="mt-auto">
+              <SessionControls
+                startSession={startSession}
+                stopSession={stopSession}
+                sendClientEvent={sendClientEvent}
+                events={events}
+                isSessionActive={isSessionActive}
+              />
+            </div>
+          </aside>
+        </div>
       </main>
     </>
   );

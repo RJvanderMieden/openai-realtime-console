@@ -8,7 +8,6 @@ https://tailwindcss.com/docs/preflight
 
 :root {
   --color-base: #efefef;
-  --color-highlight: #ff80ff;
 }
 
 html,
@@ -18,7 +17,5 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: "Consolas", "Andale Mono", monospace;
-  font-size: 0.9rem;
   background-color: var(--color-base);
 }

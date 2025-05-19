@@ -1,68 +1,72 @@
-import { ArrowUp, ArrowDown } from "react-feather";
-import { useState } from "react";
+import { useState, useEffect } from 'react';
+import { FileText } from 'lucide-react';
 
-function Event({ event, timestamp }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+const EventLog = ({ events }) => {
+  const [chatMessages, setChatMessages] = useState([]);
 
-  const isClient = event.event_id && !event.event_id.startsWith("event_");
+  useEffect(() => {
+    const messageBuffer = new Map();
+    const transcriptBuffer = new Map();
+
+    [...events].reverse().forEach(event => {
+      // Only handle user messages
+      if (event.type === 'conversation.item.created') {
+        const item = event.item;
+        if (item && item.role === 'user') {
+          const itemId = item.id;
+          if (!messageBuffer.has(itemId)) {
+            messageBuffer.set(itemId, {
+              role: item.role,
+              content: '',
+              timestamp: event.timestamp,
+              status: item.status,
+              itemId
+            });
+          }
+        }
+      }
+      // Handle user audio transcriptions
+      if (event.type === 'conversation.item.input_audio_transcription.completed' && event.transcript) {
+        const itemId = event.item_id;
+        transcriptBuffer.set(itemId, event.transcript.trim());
+      }
+    });
+
+    const newChatMessages = Array.from(messageBuffer.entries())
+      .map(([itemId, message]) => {
+        if (transcriptBuffer.has(itemId)) {
+          message.content = transcriptBuffer.get(itemId);
+        }
+        return message;
+      })
+      .filter(message => message.content && message.content.trim())
+      .sort((a, b) => {
+        const aEvent = events.find(e => e.item?.id === a.itemId);
+        const bEvent = events.find(e => e.item?.id === b.itemId);
+        return events.indexOf(bEvent) - events.indexOf(aEvent);
+      });
+
+    setChatMessages(newChatMessages);
+  }, [events]);
 
   return (
-    <div className="flex flex-col gap-2 p-2 rounded-md bg-gray-50">
-      <div
-        className="flex items-center gap-2 cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        {isClient ? (
-          <ArrowDown className="text-blue-400" />
-        ) : (
-          <ArrowUp className="text-green-400" />
-        )}
-        <div className="text-sm text-gray-500">
-          {isClient ? "client:" : "server:"}
-          &nbsp;{event.type} | {timestamp}
+    <div className="flex flex-col h-full">
+      <div className="flex-1 p-4 pr-0 overflow-y-auto">
+        <div className="mx-auto bg-white shadow-sm rounded-md border border-gray-200 overflow-hidden h-full">
+          {chatMessages.length > 0 ? (
+            <div className="p-6 bg-white text-gray-800 h-full overflow-y-auto" style={{ fontFamily: 'Georgia, serif' }}>
+              {chatMessages.map(message => message.content).join(' ')}
+            </div>
+          ) : (
+            <div className="text-center py-10 text-gray-500 h-full flex flex-col items-center justify-center">
+              <FileText className="h-10 w-10 mb-2 text-gray-400" />
+              <p>Transcript will appear here.</p>
+            </div>
+          )}
         </div>
       </div>
-      <div
-        className={`text-gray-500 bg-gray-200 p-2 rounded-md overflow-x-auto ${
-          isExpanded ? "block" : "hidden"
-        }`}
-      >
-        <pre className="text-xs">{JSON.stringify(event, null, 2)}</pre>
-      </div>
     </div>
   );
-}
+};
 
-export default function EventLog({ events }) {
-  const eventsToDisplay = [];
-  let deltaEvents = {};
-
-  events.forEach((event) => {
-    if (event.type.endsWith("delta")) {
-      if (deltaEvents[event.type]) {
-        // for now just log a single event per render pass
-        return;
-      } else {
-        deltaEvents[event.type] = event;
-      }
-    }
-
-    eventsToDisplay.push(
-      <Event
-        key={event.event_id}
-        event={event}
-        timestamp={new Date().toLocaleTimeString()}
-      />,
-    );
-  });
-
-  return (
-    <div className="flex flex-col gap-2 overflow-x-auto">
-      {events.length === 0 ? (
-        <div className="text-gray-500">Awaiting events...</div>
-      ) : (
-        eventsToDisplay
-      )}
-    </div>
-  );
-}
+export default EventLog;

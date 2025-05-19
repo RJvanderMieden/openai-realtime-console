@@ -1,89 +1,37 @@
-import { useState } from "react";
-import { CloudLightning, CloudOff, MessageSquare } from "react-feather";
-import Button from "./Button";
-
-function SessionStopped({ startSession }) {
-  const [isActivating, setIsActivating] = useState(false);
-
-  function handleStartSession() {
-    if (isActivating) return;
-
-    setIsActivating(true);
-    startSession();
-  }
-
-  return (
-    <div className="flex items-center justify-center w-full h-full">
-      <Button
-        onClick={handleStartSession}
-        className={isActivating ? "bg-gray-600" : "bg-red-600"}
-        icon={<CloudLightning height={16} />}
-      >
-        {isActivating ? "starting session..." : "start session"}
-      </Button>
-    </div>
-  );
-}
-
-function SessionActive({ stopSession, sendTextMessage }) {
-  const [message, setMessage] = useState("");
-
-  function handleSendClientEvent() {
-    sendTextMessage(message);
-    setMessage("");
-  }
-
-  return (
-    <div className="flex items-center justify-center w-full h-full gap-4">
-      <input
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && message.trim()) {
-            handleSendClientEvent();
-          }
-        }}
-        type="text"
-        placeholder="send a text message..."
-        className="border border-gray-200 rounded-full p-4 flex-1"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-      />
-      <Button
-        onClick={() => {
-          if (message.trim()) {
-            handleSendClientEvent();
-          }
-        }}
-        icon={<MessageSquare height={16} />}
-        className="bg-blue-400"
-      >
-        send text
-      </Button>
-      <Button onClick={stopSession} icon={<CloudOff height={16} />}>
-        disconnect
-      </Button>
-    </div>
-  );
-}
+import { Square, Mic } from "lucide-react";
 
 export default function SessionControls({
   startSession,
   stopSession,
-  sendClientEvent,
-  sendTextMessage,
-  serverEvents,
   isSessionActive,
 }) {
   return (
-    <div className="flex gap-4 border-t-2 border-gray-200 h-full rounded-md">
-      {isSessionActive ? (
-        <SessionActive
-          stopSession={stopSession}
-          sendClientEvent={sendClientEvent}
-          sendTextMessage={sendTextMessage}
-          serverEvents={serverEvents}
-        />
-      ) : (
-        <SessionStopped startSession={startSession} />
+    <div className="flex flex-col gap-4 items-center justify-center p-4 mr-4">
+      {!isSessionActive && (
+        <div className="flex flex-col items-center">
+          <button
+            onClick={startSession}
+            className="w-16 h-16 flex items-center justify-center bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-200 transform hover:scale-105"
+            type="button"
+            aria-label="Start Recording"
+            title="Start Recording"
+          >
+            <Mic size={28} />
+          </button>
+        </div>
+      )}
+      {isSessionActive && (
+        <div className="flex flex-col items-center">
+          <button
+            onClick={stopSession}
+            className="w-16 h-16 flex items-center justify-center bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-200 animate-pulse"
+            type="button"
+            aria-label="Stop Recording"
+            title="Stop Recording"
+          >
+            <Square size={28} />
+          </button>
+        </div>
       )}
     </div>
   );
