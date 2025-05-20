@@ -41,33 +41,21 @@ const ToolPanel = ({ isSessionActive, sendClientEvent, events }) => {
                             {
                                 type: "function",
                                 name: "add_to_notebook",
-                                description: "Gebruik dit notitieblok om de Hypotheekadviseur zo goed mogelijk te ondersteunen. Noteer feiten waar later in het gesprek op terug gevallen kan worden. Bijvoorbeeld de naam, schulden, inkomen, etc. Maak de notities zo kort mogelijk.",
-                                parameters: {
-                                    type: "object",
-                                    strict: true,
-                                    properties: {
-                                        notitie: {
-                                            type: "string",
-                                            description: "De belangrijke informatie om op te slaan."
-                                        },
-                                    },
-                                    required: ["notitie"]
-                                }
-                            },
-                            {
-                                type: "function",
-                                name: "add_followup_question",
                                 description: "Gebruik deze functie om vervolgvragen te noteren die de Hypotheekadviseur zou moeten stellen.",
                                 parameters: {
                                     type: "object",
                                     strict: true,
                                     properties: {
-                                        vraag: {
+                                        fact: {
                                             type: "string",
-                                            description: "De vervolgvraag die gesteld moet worden. Bijvoorbeeld: vraag naar of er lopende leningen zijn."
+                                            description: "Een feit of notitie die relevant is voor het gesprek. Bijvoorbeeld: Axel heeft een studieschuld."
                                         },
+                                        question: {
+                                            type: "string",
+                                            description: "De vervolgvraag die gesteld moet worden. Bijvoorbeeld: Zijn er lopende leningen?"
+                                        }
                                     },
-                                    required: ["vraag"]
+                                    required: ["fact", "question"]
                                 }
                             }
                         ],
@@ -88,7 +76,7 @@ const ToolPanel = ({ isSessionActive, sendClientEvent, events }) => {
                     .output
                     .forEach((output) => {
                         if (output.type === "function_call" && 
-                            (output.name === "add_to_notebook" || output.name === "add_followup_question")) {
+                            (output.name === "add_to_notebook")) {
                             console.log("TOOL CALL:", output);
                             const isDuplicate = functionCallOutputs.some(existingOutput => existingOutput.call_id === output.call_id);
 
@@ -125,7 +113,6 @@ const ToolPanel = ({ isSessionActive, sendClientEvent, events }) => {
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                         <div className="flex flex-col items-center justify-center text-center py-10 text-gray-500">
                             <NotebookPen className="h-10 w-10 mb-2 text-gray-400" />
-                            <p>Notes will appear here.</p>
                         </div>
                     </div>
                 )}

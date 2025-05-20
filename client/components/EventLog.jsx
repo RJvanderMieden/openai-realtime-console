@@ -52,7 +52,7 @@ const EventLog = ({ events }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 p-4 pr-0 overflow-y-auto">
-        <div className="mx-auto bg-white shadow-sm rounded-md border border-gray-200 overflow-hidden h-full">
+        <div className="mx-auto bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden h-full">
           {chatMessages.length > 0 ? (
             <div className="p-6 bg-white text-gray-800 h-full overflow-y-auto" style={{ fontFamily: 'Georgia, serif' }}>
               {chatMessages.map(message => message.content).join(' ')}
@@ -60,7 +60,6 @@ const EventLog = ({ events }) => {
           ) : (
             <div className="text-center py-10 text-gray-500 h-full flex flex-col items-center justify-center">
               <FileText className="h-10 w-10 mb-2 text-gray-400" />
-              <p>Transcript will appear here.</p>
             </div>
           )}
         </div>
